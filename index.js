@@ -4,61 +4,59 @@ const app = express();
 
 app.use(express.json());
 
-// --- 1. THE DISCOVERY ENDPOINT (CORRECTED: DIRECT ARRAY) ---
+// --- 1. THE DISCOVERY ENDPOINT (The "Golden" Format) ---
 app.get('/discovery', (req, res) => {
-  // We automatically detect the domain so endpoints are absolute URLs
   const host = req.get('host'); 
   const protocol = req.protocol;
   const baseUrl = `${protocol}://${host}`;
 
-  // Return the ARRAY directly (No "tools": { ... } wrapper)
-  res.json([
+  res.json({
+    "functions": [
       {
-        name: "get_remix_recipe",
-        description: "Fetches formatting rules (length, tone, emojis) for specific social channels.",
-        endpoint: `${baseUrl}/tools/recipe`, 
-        method: "POST",
-        parameters: {
-          type: "object",
-          properties: {
-            channels: {
-              type: "string",
-              description: "Comma-separated list of channels (e.g., 'LinkedIn, Twitter')."
-            }
-          },
-          required: ["channels"],
-          additionalProperties: false
-        }
+        "name": "get_remix_recipe",
+        "description": "Fetches formatting rules (length, tone, emojis) for specific social channels.",
+        "endpoint": `${baseUrl}/tools/recipe`, 
+        "method": "POST",
+        "parameters": [
+          {
+            "name": "channels",
+            "type": "string",
+            "description": "Comma-separated list of channels (e.g., 'LinkedIn, Twitter').",
+            "required": true
+          }
+        ]
       },
       {
-        name: "create_cmp_draft",
-        description: "Creates a new task/draft in the Content Marketing Platform (CMP).",
-        endpoint: `${baseUrl}/tools/create-task`,
-        method: "POST",
-        parameters: {
-          type: "object",
-          properties: {
-            channel: {
-              type: "string",
-              description: "The platform (LinkedIn, Twitter, etc.)."
-            },
-            content_body: {
-              type: "string",
-              description: "The final remixed text content."
-            },
-            due_date: {
-              type: "string",
-              description: "Due date (YYYY-MM-DD). Optional."
-            }
+        "name": "create_cmp_draft",
+        "description": "Creates a new task/draft in the Content Marketing Platform (CMP).",
+        "endpoint": `${baseUrl}/tools/create-task`,
+        "method": "POST",
+        "parameters": [
+          {
+            "name": "channel",
+            "type": "string",
+            "description": "The platform (LinkedIn, Twitter, etc.).",
+            "required": true
           },
-          required: ["channel", "content_body"],
-          additionalProperties: false
-        }
+          {
+            "name": "content_body",
+            "type": "string",
+            "description": "The final remixed text content.",
+            "required": true
+          },
+          {
+            "name": "due_date",
+            "type": "string",
+            "description": "Due date (YYYY-MM-DD).",
+            "required": false
+          }
+        ]
       }
-  ]);
+    ]
+  });
 });
 
-// --- 2. TOOL LOGIC (unchanged) ---
+// --- 2. TOOL LOGIC (Unchanged) ---
 
 app.post('/tools/recipe', (req, res) => {
   const channels = req.body.channels || "";
