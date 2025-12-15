@@ -4,7 +4,7 @@ const app = express();
 
 app.use(express.json());
 
-// --- 1. THE DISCOVERY ENDPOINT ---
+// --- 1. THE DISCOVERY ENDPOINT (CORRECTED SCHEMA) ---
 app.get('/discovery', (req, res) => {
   res.json({
     tools: [
@@ -13,20 +13,40 @@ app.get('/discovery', (req, res) => {
         description: "Fetches formatting rules (length, tone, emojis) for specific social channels.",
         endpoint: "/tools/recipe",
         method: "POST",
-        parameters: [
-          { name: "channels", type: "string", description: "Comma-separated list of channels (e.g., 'LinkedIn, Twitter, Instagram')." }
-        ]
+        parameters: {
+          type: "object",
+          properties: {
+            channels: {
+              type: "string",
+              description: "Comma-separated list of channels (e.g., 'LinkedIn, Twitter')."
+            }
+          },
+          required: ["channels"]
+        }
       },
       {
         name: "create_cmp_draft",
-        description: "Creates a new task/draft in the Content Marketing Platform (CMP) for a specific channel.",
+        description: "Creates a new task/draft in the Content Marketing Platform (CMP).",
         endpoint: "/tools/create-task",
         method: "POST",
-        parameters: [
-          { name: "channel", type: "string", description: "The platform (LinkedIn, Twitter, etc.)." },
-          { name: "content_body", type: "string", description: "The final remixed text content." },
-          { name: "due_date", type: "string", description: "Due date for the post (YYYY-MM-DD)." }
-        ]
+        parameters: {
+          type: "object",
+          properties: {
+            channel: {
+              type: "string",
+              description: "The platform (LinkedIn, Twitter, etc.)."
+            },
+            content_body: {
+              type: "string",
+              description: "The final remixed text content."
+            },
+            due_date: {
+              type: "string",
+              description: "Due date (YYYY-MM-DD). Optional."
+            }
+          },
+          required: ["channel", "content_body"]
+        }
       }
     ]
   });
@@ -36,8 +56,9 @@ app.get('/discovery', (req, res) => {
 
 // Tool 1: The Recipe Book
 app.post('/tools/recipe', (req, res) => {
-  const { channels } = req.body;
-  const requested = (channels || "").toLowerCase();
+  // Safe extraction of parameters
+  const channels = req.body.channels || "";
+  const requested = channels.toLowerCase();
   
   let recipes = {};
 
@@ -59,13 +80,11 @@ app.post('/tools/recipe', (req, res) => {
     };
   }
 
-  if (requested.includes("instagram")) {
-    recipes.Instagram = {
-      role: "Visual Storyteller",
-      structure: "Emotional Hook -> Short Story -> 'Link in Bio'.",
-      constraints: "Focus on visual description. 10+ hashtags at the bottom.",
-      tone: "Casual, friendly, lifestyle-focused."
-    };
+  // Default if no specific channel found
+  if (Object.keys(recipes).length === 0) {
+     recipes.General = {
+        note: "No specific channel detected. Keep it short and clear."
+     };
   }
 
   res.json({
@@ -84,10 +103,10 @@ app.post('/tools/create-task', (req, res) => {
     platform: "Optimizely CMP",
     task_created: {
       id: `CMP-${taskId}`,
-      title: `${channel} Post: ${content_body.substring(0, 20)}...`,
+      title: `${channel} Post`,
       channel: channel,
       workflow_step: "Draft",
-      assignee: "Yazan Al Shalabi",
+      assignee: "System User",
       due_date: due_date || "2025-12-31"
     },
     message: `✅ Successfully created draft in CMP for ${channel}.`
