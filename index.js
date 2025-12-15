@@ -4,14 +4,19 @@ const app = express();
 
 app.use(express.json());
 
-// --- 1. THE DISCOVERY ENDPOINT (CORRECTED SCHEMA) ---
+// --- 1. THE DISCOVERY ENDPOINT (CORRECTED: DIRECT ARRAY) ---
 app.get('/discovery', (req, res) => {
-  res.json({
-    tools: [
+  // We automatically detect the domain so endpoints are absolute URLs
+  const host = req.get('host'); 
+  const protocol = req.protocol;
+  const baseUrl = `${protocol}://${host}`;
+
+  // Return the ARRAY directly (No "tools": { ... } wrapper)
+  res.json([
       {
         name: "get_remix_recipe",
         description: "Fetches formatting rules (length, tone, emojis) for specific social channels.",
-        endpoint: "/tools/recipe",
+        endpoint: `${baseUrl}/tools/recipe`, 
         method: "POST",
         parameters: {
           type: "object",
@@ -21,13 +26,14 @@ app.get('/discovery', (req, res) => {
               description: "Comma-separated list of channels (e.g., 'LinkedIn, Twitter')."
             }
           },
-          required: ["channels"]
+          required: ["channels"],
+          additionalProperties: false
         }
       },
       {
         name: "create_cmp_draft",
         description: "Creates a new task/draft in the Content Marketing Platform (CMP).",
-        endpoint: "/tools/create-task",
+        endpoint: `${baseUrl}/tools/create-task`,
         method: "POST",
         parameters: {
           type: "object",
@@ -45,18 +51,16 @@ app.get('/discovery', (req, res) => {
               description: "Due date (YYYY-MM-DD). Optional."
             }
           },
-          required: ["channel", "content_body"]
+          required: ["channel", "content_body"],
+          additionalProperties: false
         }
       }
-    ]
-  });
+  ]);
 });
 
-// --- 2. TOOL LOGIC ---
+// --- 2. TOOL LOGIC (unchanged) ---
 
-// Tool 1: The Recipe Book
 app.post('/tools/recipe', (req, res) => {
-  // Safe extraction of parameters
   const channels = req.body.channels || "";
   const requested = channels.toLowerCase();
   
@@ -80,7 +84,6 @@ app.post('/tools/recipe', (req, res) => {
     };
   }
 
-  // Default if no specific channel found
   if (Object.keys(recipes).length === 0) {
      recipes.General = {
         note: "No specific channel detected. Keep it short and clear."
@@ -93,7 +96,6 @@ app.post('/tools/recipe', (req, res) => {
   });
 });
 
-// Tool 2: The CMP Task Creator (Simulated)
 app.post('/tools/create-task', (req, res) => {
   const { channel, content_body, due_date } = req.body;
   const taskId = uuidv4().split('-')[0].toUpperCase();
